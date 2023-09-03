@@ -21,6 +21,7 @@ async function bootstrap() {
   SwaggerModule.setup('api', app, document);
 
   app.setGlobalPrefix('api/v1');
-  await app.listen(process.env.PORT || 3000);
+  app.enableCors();
+  await app.listen(process.env.PORT || 3080);
 }
 bootstrap();

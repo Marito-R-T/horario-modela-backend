@@ -19,7 +19,18 @@ export class AuthService {
     const plainToHash = await hash(password, 10);
     userObject = {...userObject, password:plainToHash};
     const newUser = this.userRepository.create(userObject);
-    return this.userRepository.save(newUser);
+
+    const payload = {id:newUser.id, username:newUser.username}
+    const token = await this.jwtAuthService.sign(payload);
+
+    const data = {
+      user: newUser,
+      token: token,
+    };
+
+    this.userRepository.save(newUser);
+
+    return data;
   }
 
   async login(userObjectLogin: LoginAuthDto) {

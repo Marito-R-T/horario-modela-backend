@@ -1,3 +1,4 @@
+import { Seccion } from '../secciones/seccion.entity'
 import { MateriaCatedratico } from '../materia-catedratico/materia-catedratico.entity'
 import {Entity, Column, OneToMany, PrimaryGeneratedColumn} from 'typeorm'
 
@@ -14,4 +15,7 @@ export class Materia {
   
   @OneToMany(() => MateriaCatedratico, mc => mc.materia)
   catedraticos: MateriaCatedratico[]
+  
+  @OneToMany(() => Seccion, seccion => seccion.numero)
+  seccion: Seccion[]
 }
