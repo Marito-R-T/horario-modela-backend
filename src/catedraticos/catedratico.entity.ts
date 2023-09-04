@@ -7,7 +7,7 @@ export class Catedratico {
   id: number
 
   @Column()
-  name: string
+  nombre: string
 
   @OneToMany(() => MateriaCatedratico, mc => mc.catedratico)
   materias: MateriaCatedratico[]

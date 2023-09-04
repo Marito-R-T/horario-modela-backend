@@ -1,10 +1,10 @@
 import { Materia } from '../materias/materia.entity'
-import {Entity, Column, PrimaryColumn, ManyToOne, JoinColumn} from 'typeorm'
+import {Entity, Column, ManyToOne, JoinColumn, PrimaryGeneratedColumn} from 'typeorm'
 
 @Entity({ name: 'seccion' })
 export class Seccion {
-  @PrimaryColumn()
-  numero: number
+  @PrimaryGeneratedColumn()
+  id: number
 
   @Column()
   asignados: number

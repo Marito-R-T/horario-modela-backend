@@ -16,6 +16,6 @@ export class Materia {
   @OneToMany(() => MateriaCatedratico, mc => mc.materia)
   catedraticos: MateriaCatedratico[]
   
-  @OneToMany(() => Seccion, seccion => seccion.numero)
+  @OneToMany(() => Seccion, seccion => seccion.id)
   seccion: Seccion[]
 }

@@ -4,21 +4,29 @@ import { Aula } from './aula.entity';
 import { Repository } from 'typeorm';
 import { CreateAulaDto } from './dto/create-aula.dto';
 import { UpdateAulaDto } from './dto/update-aula.dto';
+import { Pagination } from 'src/dto/pagination.dto';
 
 @Injectable()
 export class AulasService {
   constructor(@InjectRepository(Aula) private aulaRepository: Repository<Aula>) {}
 
-  createBook(book: CreateAulaDto) {
-    const newBook = this.aulaRepository.create(book);
-    return this.aulaRepository.save(newBook)
+  createAula(aula: CreateAulaDto) {
+    const newAula = this.aulaRepository.create(aula);
+    return this.aulaRepository.save(newAula)
   }
 
-  getBooks() {
+  getAllAulas() {
     return this.aulaRepository.find()
   }
 
-  getBook(id: number) {
+  getAulas(pagination: Pagination) {
+    return this.aulaRepository.findAndCount({
+      take: pagination.number,
+      skip: (pagination.page - 1) * pagination.number
+    })
+  }
+
+  getAula(id: number) {
     return this.aulaRepository.findOne({
       where: {
         id: id
@@ -26,11 +34,11 @@ export class AulasService {
     })
   }
 
-  deleteBook(id: number) {
+  deleteAula(id: number) {
     return this.aulaRepository.delete({ id });
   }
 
-  updateBook(id: number, book: UpdateAulaDto) {
-    return this.aulaRepository.update({ id }, book);
+  updateAula(id: number, aula: UpdateAulaDto) {
+    return this.aulaRepository.update({ id }, aula);
   }
 }

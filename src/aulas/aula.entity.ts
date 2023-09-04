@@ -6,7 +6,7 @@ export class Aula {
   id: number
 
   @Column()
-  name: string
+  nombre: string
   
   @Column("int")
   capacidad: number
