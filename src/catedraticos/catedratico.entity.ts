@@ -9,6 +9,12 @@ export class Catedratico {
   @Column()
   nombre: string
 
+  @Column()
+  periodo_inicio: number
+
+  @Column()
+  periodo_final: number
+
   @OneToMany(() => MateriaCatedratico, mc => mc.catedratico)
   materias: MateriaCatedratico[]
 }

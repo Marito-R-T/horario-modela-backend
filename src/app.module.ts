@@ -10,6 +10,7 @@ import { MateriaCatedraticoModule } from './materia-catedratico/materia-catedrat
 import { SeccionesModule } from './secciones/secciones.module';
 import { MateriasModule } from './materias/materias.module';
 import { CatedraticosModule } from './catedraticos/catedraticos.module';
+import { HorarioModule } from './horario/horario.module';
 
 @Module({
   imports: [
@@ -30,7 +31,8 @@ import { CatedraticosModule } from './catedraticos/catedraticos.module';
     MateriaCatedraticoModule,
     SeccionesModule,
     MateriasModule,
-    CatedraticosModule
+    CatedraticosModule,
+    HorarioModule
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -8,5 +8,6 @@ import { Aula } from './aula.entity';
   imports: [TypeOrmModule.forFeature([Aula])],
   controllers: [AulasController],
   providers: [AulasService],
+  exports: [AulasService]
 })
 export class AulasModule {}
