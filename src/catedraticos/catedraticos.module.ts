@@ -7,6 +7,7 @@ import { Catedratico } from './catedratico.entity';
 @Module({
   imports: [TypeOrmModule.forFeature([Catedratico])],
   providers: [CatedraticosService],
-  controllers: [CatedraticosController]
+  controllers: [CatedraticosController],
+  exports: [CatedraticosService]
 })
 export class CatedraticosModule {}
