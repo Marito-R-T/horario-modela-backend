@@ -26,7 +26,11 @@ export class SeccionesService {
   }
 
   getAllSecciones() {
-    return this.seccionRepository.find()
+    return this.seccionRepository.find({
+      relations: {
+        materia: true
+      }
+    })
   }
 
   getSeccion(id: number) {

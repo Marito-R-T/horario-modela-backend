@@ -25,7 +25,8 @@ import { Seccion } from 'src/secciones/seccion.entity';
     HorarioService, 
     MateriasService, 
     AulasService, 
-    SeccionesService
+    SeccionesService,
+    CatedraticosService
   ]
 })
 export class HorarioModule {}

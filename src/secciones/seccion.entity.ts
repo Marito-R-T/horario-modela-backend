@@ -11,6 +11,9 @@ export class Seccion {
 
   @Column()
   materia_id: number;
+
+  @Column()
+  letra: string;
   
   @ManyToOne(() => Materia, materia => materia.catedraticos, {nullable: false})
   @JoinColumn({name: "materia_id", referencedColumnName: "id"})

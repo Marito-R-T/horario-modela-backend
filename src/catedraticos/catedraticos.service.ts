@@ -16,7 +16,11 @@ export class CatedraticosService {
   }
 
   getAllCatedraticos() {
-    return this.catedraticoRepository.find();
+    return this.catedraticoRepository.find({
+      relations: {
+        materias: true
+      }
+    });
   }
 
   getCatedraticos(pagination: Pagination) {
