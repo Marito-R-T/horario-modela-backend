@@ -15,9 +15,10 @@ import { PorcentajeSeccionPeriodo } from './dto/porcentaje-seccion-periodo';
 import { PeriodoProbabilidad } from './PeriodoProbabilidad';
 import { Hora } from './Hora';
 import { AulaProbabilidad } from './AulaProbabilidad';
-import { AulaSeccionProbabilidad } from './AulaSeccionProbabilidad';
+import { AulaSeccionProbabilidad, SeccionAulasProbabilidad } from './AulaSeccionProbabilidad';
 import { CatedraticosService } from 'src/catedraticos/catedraticos.service';
 import { Periodo } from './Periodo';
+import { Errores } from './Errores';
 
 @Injectable()
 export class HorarioService {
@@ -38,15 +39,82 @@ export class HorarioService {
     let aulas = await this.aulaService.getAllAulas()
     let catedraticos = await this.catedraticoService.getAllCatedraticos()
     
-    let probabilidadMateriasAulas = this.createPorcentajeMaterias(secciones, aulas, settings)
+    let probabilidadSeccionAulas = this.createPorcentajeSecciones(secciones, aulas, settings)
+    let probabilidadMateriasAulas = this.createPorcentajeMaterias(probabilidadSeccionAulas, aulas, settings)
     let horario = this.createPorcentajesCombinados(probabilidadMateriasAulas, catedraticos, settings)
     let horarioSegunMejorCaso = this.crearHorarioSegunMejorCaso(horario, settings.cantidad_horarios)
-    let horariosFinales = this.crearHorarioFinales(aulas, horarioSegunMejorCaso, settings)
+    let horariosFinales = this.crearHorarioFinales(aulas, horarioSegunMejorCaso, secciones, settings)
     return horariosFinales
   }
 
-  createPorcentajeMaterias(secciones: Seccion[], aulas: Aula[], settings: SettingsDto): Array<AulaSeccionProbabilidad> {
+  createPorcentajeSecciones(secciones: Seccion[], aulas: Aula[], settings: SettingsDto): Array<SeccionAulasProbabilidad> {
+    let aulasSeccionesPorcentage: Array<SeccionAulasProbabilidad> = []
+    for (let i = 0; i < secciones.length; i++) {
+      const seccion = secciones[i];
+      let seccionp: SeccionAulasProbabilidad = {
+        seccion: seccion,
+        porcentajeAulas: []
+      };
+      for (let j = 0; j < aulas.length; j++) {
+        const aula = aulas[j];
+        const psp: PorcentajeSeccionPeriodo = {
+          aula: aula,
+          seccion: seccion,
+          diferencia_capacidad_asignaciones: aula.capacidad - seccion.asignados,
+          errores: [],
+          avisos: []
+        };
+        seccionp.porcentajeAulas.push(psp);
+      }
+      seccionp.porcentajeAulas.sort((a: PorcentajeSeccionPeriodo, b:PorcentajeSeccionPeriodo): number => {
+        if (a.diferencia_capacidad_asignaciones < 0 && b.diferencia_capacidad_asignaciones >= 0) return 1
+        else if (a.diferencia_capacidad_asignaciones >= 0 && b.diferencia_capacidad_asignaciones < 0) return -1
+        else if (a.diferencia_capacidad_asignaciones < 0 && b.diferencia_capacidad_asignaciones < 0) return (a.diferencia_capacidad_asignaciones*-1) - (b.diferencia_capacidad_asignaciones*-1)
+        return a.diferencia_capacidad_asignaciones - b.diferencia_capacidad_asignaciones
+      })
+      for (let j = 0; j < seccionp.porcentajeAulas.length; j++) {
+        const psp = seccionp.porcentajeAulas[j];
+        psp.porcentaje = psp.diferencia_capacidad_asignaciones < 0 ?
+          settings.porcentaje_fuera_capacidad - ((settings.diferencia_entre_secciones_aulas/aulas.length)*j)
+          : 1 - (settings.diferencia_entre_secciones_aulas*j)
+        if(psp.diferencia_capacidad_asignaciones < 0){
+          psp.porcentaje = psp.porcentaje > 0 ? psp.porcentaje : 0
+          psp.errores.push({
+            tipo: "Sobrepoblación",
+            descripcion: "La sección tiene asignados más alumnos de la capacidad máxima del aula",
+            grave: true
+          })
+        } else if(psp.porcentaje < settings.minimo_porcentaje_secciones_chicas) {
+          psp.porcentaje = settings.minimo_porcentaje_secciones_chicas
+        }
+      }
+      aulasSeccionesPorcentage.push(seccionp);
+    }
+    return aulasSeccionesPorcentage;
+  }
+
+  createPorcentajeMaterias(probabilidadSeccionAulas: Array<SeccionAulasProbabilidad>, aulas: Aula[], settings: SettingsDto): Array<AulaSeccionProbabilidad> {
     let aulasSeccionesPorcentage: Array<AulaSeccionProbabilidad> = []
+    for (let i = 0; i < aulas.length; i++) {
+      const aula = aulas[i];
+      let aulap: AulaSeccionProbabilidad = {
+        aula: aula,
+        porcentajeSecciones: []
+      };
+      for (let j = 0; j < probabilidadSeccionAulas.length; j++) {
+        const psa = probabilidadSeccionAulas[j];
+        for (let k = 0; k < psa.porcentajeAulas.length; k++) {
+          const pa = psa.porcentajeAulas[k];
+          if(pa.aula.id === aula.id){
+            aulap.porcentajeSecciones.push(pa)
+            break
+          }
+        }
+      }
+      aulasSeccionesPorcentage.push(aulap)
+    }
+    return aulasSeccionesPorcentage;
+    /*let aulasSeccionesPorcentage: Array<AulaSeccionProbabilidad> = []
     for (let i = 0; i < aulas.length; i++) {
       const aula = aulas[i];
       let aulap: AulaSeccionProbabilidad = {
@@ -58,24 +126,37 @@ export class HorarioService {
         const psp: PorcentajeSeccionPeriodo = {
           aula: aula,
           seccion: seccion,
-          diferencia_capacidad_asignaciones: aula.capacidad - seccion.asignados
+          diferencia_capacidad_asignaciones: aula.capacidad - seccion.asignados,
+          errores: [],
+          avisos: []
         };
         aulap.porcentajeSecciones.push(psp);
       }
       aulap.porcentajeSecciones.sort((a: PorcentajeSeccionPeriodo, b:PorcentajeSeccionPeriodo): number => {
         if (a.diferencia_capacidad_asignaciones < 0 && b.diferencia_capacidad_asignaciones >= 0) return 1
         else if (a.diferencia_capacidad_asignaciones >= 0 && b.diferencia_capacidad_asignaciones < 0) return -1
+        else if (a.diferencia_capacidad_asignaciones < 0 && b.diferencia_capacidad_asignaciones < 0) return (a.diferencia_capacidad_asignaciones*-1) - (b.diferencia_capacidad_asignaciones*-1)
         return a.diferencia_capacidad_asignaciones - b.diferencia_capacidad_asignaciones
       })
       for (let j = 0; j < aulap.porcentajeSecciones.length; j++) {
         const psp = aulap.porcentajeSecciones[j];
-        psp.porcentaje = 1 - (settings.diferencia_entre_secciones_aulas*j)
-        if(psp.diferencia_capacidad_asignaciones < 0) psp.porcentaje = settings.porcentaje_fuera_capacidad
-        else if(psp.porcentaje < settings.minimo_porcentaje_secciones_chicas) psp.porcentaje = settings.minimo_porcentaje_secciones_chicas
+        psp.porcentaje = psp.diferencia_capacidad_asignaciones < 0 ?
+          settings.porcentaje_fuera_capacidad - ((settings.diferencia_entre_secciones_aulas/secciones.length)*j)
+          : 1 - (settings.diferencia_entre_secciones_aulas*j)
+        if(psp.diferencia_capacidad_asignaciones < 0){
+          psp.porcentaje = psp.porcentaje > 0 ? psp.porcentaje : 0
+          psp.errores.push({
+            tipo: "Sobrepoblación",
+            descripcion: "La sección tiene asignados más alumnos de la capacidad máxima del aula",
+            grave: true
+          })
+        } else if(psp.porcentaje < settings.minimo_porcentaje_secciones_chicas) {
+          psp.porcentaje = settings.minimo_porcentaje_secciones_chicas
+        }
       }
       aulasSeccionesPorcentage.push(aulap);
     }
-    return aulasSeccionesPorcentage;
+    return aulasSeccionesPorcentage;*/
   }
 
   createPorcentajesCombinados(pma: Array<AulaSeccionProbabilidad>, catedraticos: Catedratico[], settings: SettingsDto): Array<Hora> {
@@ -94,23 +175,65 @@ export class HorarioService {
         }
         for (let k = 0; k < asp.porcentajeSecciones.length; k++) {
           const ps = asp.porcentajeSecciones[k]
+
+          let periodoProbabilidad: Periodo = {
+            aula: asp.aula,
+            materia: ps.seccion.materia,
+            seccion: ps.seccion,
+            probabilidad: ps.porcentaje * settings.porcentaje_no_catedratico,
+            numPeriodo: hora.numPeriodo,
+            errores: [...ps.errores, {
+              tipo: "No hay catedratico",
+              descripcion: "Ningun catedratico está disponible esta hora",
+              grave: true,
+            }],
+            avisos: ps.avisos
+          }
+          aulaProbabilidad.periodosProbables.push(periodoProbabilidad)
+
           for (let l = 0; l < catedraticos.length; l++) {
+            let errores: Errores[] = []
+            let avisos: Errores[] = []
             const catedratico = catedraticos[l]
             const matCat = catedratico.materias.find((m) => {return m.materia_id === ps.seccion.materia_id})
             let porcentajeCatP: number = settings.porcentaje_catedratico_opcional
-            if(matCat) {
-              porcentajeCatP = matCat.primario ? 1: settings.porcentaje_materia_secundaria
+            if(matCat && matCat.primario) {
+              porcentajeCatP = 1
+            } else if (matCat && !matCat.primario) {
+              porcentajeCatP = settings.porcentaje_materia_secundaria
+              avisos.push({
+                tipo: 'Catedratico Materia Secundaria',
+                descripcion: 'Catedratico tiene la materia asignada como secundaria',
+                grave: false
+              })
+            } else {
+              errores.push({
+                tipo: 'Catedratico no Imparte esta Materia',
+                descripcion: 'El catedratico no tiene la materia asignada ni siquiera como opcional',
+                grave: true
+              })
             }
-            let porcentajeCatD: number = 
-              catedratico.periodo_inicio <= hora.numPeriodo && catedratico.periodo_final >= hora.numPeriodo ?
-              1 : settings.porcentaje_fuera_hora
+
+            let porcentajeCatD: number
+            if(catedratico.periodo_inicio <= hora.numPeriodo && catedratico.periodo_final >= hora.numPeriodo) {
+              porcentajeCatD = 1
+            } else {
+              porcentajeCatD = settings.porcentaje_fuera_hora
+              errores.push({
+                tipo: 'Fuera de Horario Laboral',
+                descripcion: 'El catedratico tiene un horario laboral que no coincide con esta hora'
+              })
+            }
+
             let periodoProbabilidad: Periodo = {
               aula: asp.aula,
               catedratico: catedratico,
               materia: ps.seccion.materia,
               seccion: ps.seccion,
               probabilidad: ps.porcentaje * porcentajeCatP * porcentajeCatD,
-              numPeriodo: hora.numPeriodo
+              numPeriodo: hora.numPeriodo,
+              errores: [...ps.errores,...errores],
+              avisos: [...ps.avisos,...avisos]
             }
             aulaProbabilidad.periodosProbables.push(periodoProbabilidad)
           }
@@ -157,7 +280,7 @@ export class HorarioService {
           const pp = periodo.periodosProbables[k];
           if((pp.aula.id === mejorPeriodo.aula.id && pp.numPeriodo === mejorPeriodo.numPeriodo) ||
             (pp.seccion.id === mejorPeriodo.seccion.id) ||
-            (pp.catedratico.id === mejorPeriodo.catedratico.id && pp.numPeriodo === mejorPeriodo.numPeriodo)) {
+            (pp.catedratico && pp.catedratico.id === mejorPeriodo.catedratico.id && pp.numPeriodo === mejorPeriodo.numPeriodo)) {
             indexes.push(k)
           }
         }
@@ -187,7 +310,7 @@ export class HorarioService {
     return horarios
   }
 
-  crearHorarioFinales(aulas: Aula[], horarios: Horario[], settings: SettingsDto): Array<HorarioFinal> {
+  crearHorarioFinales(aulas: Aula[], horarios: Horario[], secciones: Seccion[], settings: SettingsDto): Array<HorarioFinal> {
     let horariosFinales: Array<HorarioFinal> = []
     for (let h = 0; h < horarios.length; h++) {
       const horario = horarios[h];
@@ -205,10 +328,12 @@ export class HorarioService {
         }
         horas.push(hora)
       }
+      const seccionesNoEncontradas: Seccion[] = this.encontrarSeccionesNoAsignadas(secciones, horas)
       horariosFinales.push({
         horas: horas,
         aulas: aulas,
-        periodos: settings.periodos
+        periodos: settings.periodos,
+        seccionesNoEncontradas: seccionesNoEncontradas
       })
     }
     return horariosFinales
@@ -222,5 +347,26 @@ export class HorarioService {
       }
     }
     return undefined
+  }
+
+  encontrarSeccionesNoAsignadas(secciones: Seccion[], horas: Array<Array<Periodo>>): Seccion[] {
+    let seccionesNoEncontradas: Seccion[] = []
+    for (let i = 0; i < secciones.length; i++) {
+      const seccion = secciones[i];
+      let encontrada = false;
+      for (let j = 0; j < horas.length; j++) {
+        const hora = horas[j];
+        for (let k = 0; k < hora.length; k++) {
+          const periodo = hora[k];
+          if(periodo.seccion && periodo.seccion.id === seccion.id) {
+            encontrada = true;
+            break;
+          }
+        }
+        if(encontrada) break;
+      }
+      if(!encontrada) seccionesNoEncontradas.push(seccion);
+    }
+    return seccionesNoEncontradas
   }
 }

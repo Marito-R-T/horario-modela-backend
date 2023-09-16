@@ -29,15 +29,20 @@ export class SettingsDto {
   @ApiProperty({
     description: 'Porcentaje limite inferior de las secciones pequeñas si estan alejadas del tope.',
   })
-  minimo_porcentaje_secciones_chicas: number;
+  minimo_porcentaje_secciones_chicas?: number;
 
   @ApiProperty({
     description: 'Porcentaje de diferencia que se tendra entre cada sección que este más alejada del número de capacidad del aula.',
   })
-  diferencia_entre_secciones_aulas: number;
+  diferencia_entre_secciones_aulas?: number;
 
   @ApiProperty({
     description: 'Cantidad de horarios posibles',
   })
-  cantidad_horarios: number;
+  cantidad_horarios?: number;
+
+  @ApiProperty({
+    description: 'Porcentaje de validez si ningun catedratico está disponible',
+  })
+  porcentaje_no_catedratico?: number;
 }
