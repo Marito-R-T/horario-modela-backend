@@ -40,7 +40,7 @@ export class HorarioService {
     let catedraticos = await this.catedraticoService.getAllCatedraticos()
     
     let probabilidadSeccionAulas = this.createPorcentajeSecciones(secciones, aulas, settings)
-    let probabilidadMateriasAulas = this.createPorcentajeMaterias(probabilidadSeccionAulas, aulas, settings)
+    let probabilidadMateriasAulas = this.createPorcentajeMaterias(probabilidadSeccionAulas, aulas, secciones, settings)
     let horario = this.createPorcentajesCombinados(probabilidadMateriasAulas, catedraticos, settings)
     let horarioSegunMejorCaso = this.crearHorarioSegunMejorCaso(horario, settings.cantidad_horarios)
     let horariosFinales = this.crearHorarioFinales(aulas, horarioSegunMejorCaso, secciones, settings)
@@ -93,8 +93,8 @@ export class HorarioService {
     return aulasSeccionesPorcentage;
   }
 
-  createPorcentajeMaterias(probabilidadSeccionAulas: Array<SeccionAulasProbabilidad>, aulas: Aula[], settings: SettingsDto): Array<AulaSeccionProbabilidad> {
-    let aulasSeccionesPorcentage: Array<AulaSeccionProbabilidad> = []
+  createPorcentajeMaterias(probabilidadSeccionAulas: Array<SeccionAulasProbabilidad>, aulas: Aula[], secciones: Seccion[], settings: SettingsDto): Array<AulaSeccionProbabilidad> {
+    /*let aulasSeccionesPorcentage: Array<AulaSeccionProbabilidad> = []
     for (let i = 0; i < aulas.length; i++) {
       const aula = aulas[i];
       let aulap: AulaSeccionProbabilidad = {
@@ -112,9 +112,9 @@ export class HorarioService {
         }
       }
       aulasSeccionesPorcentage.push(aulap)
-    }
-    return aulasSeccionesPorcentage;
-    /*let aulasSeccionesPorcentage: Array<AulaSeccionProbabilidad> = []
+    }*/
+    //return aulasSeccionesPorcentage;
+    let aulasSeccionesPorcentage: Array<AulaSeccionProbabilidad> = []
     for (let i = 0; i < aulas.length; i++) {
       const aula = aulas[i];
       let aulap: AulaSeccionProbabilidad = {
@@ -153,10 +153,23 @@ export class HorarioService {
         } else if(psp.porcentaje < settings.minimo_porcentaje_secciones_chicas) {
           psp.porcentaje = settings.minimo_porcentaje_secciones_chicas
         }
+        for (let j = 0; j < probabilidadSeccionAulas.length; j++) {
+          const psa = probabilidadSeccionAulas[j];
+          if(psa.seccion.id === psp.seccion.id){
+            for (let k = 0; k < psa.porcentajeAulas.length; k++) {
+              const pa = psa.porcentajeAulas[k];
+              if(pa.aula.id === psp.aula.id){
+                psp.porcentaje = psp.porcentaje * pa.porcentaje
+                break
+              }
+            }
+            break;
+          }
+        }
       }
       aulasSeccionesPorcentage.push(aulap);
     }
-    return aulasSeccionesPorcentage;*/
+    return aulasSeccionesPorcentage;
   }
 
   createPorcentajesCombinados(pma: Array<AulaSeccionProbabilidad>, catedraticos: Catedratico[], settings: SettingsDto): Array<Hora> {
@@ -333,7 +346,8 @@ export class HorarioService {
         horas: horas,
         aulas: aulas,
         periodos: settings.periodos,
-        seccionesNoEncontradas: seccionesNoEncontradas
+        seccionesNoEncontradas: seccionesNoEncontradas,
+        porcentajeAcierto: this.obtenerPorcentajeAciertoHorario(horas)
       })
     }
     return horariosFinales
@@ -369,4 +383,21 @@ export class HorarioService {
     }
     return seccionesNoEncontradas
   }
+
+  obtenerPorcentajeAciertoHorario(horas: Periodo[][]): number {
+    let porcentaje = 0;
+    let cantPeriodos = 0;
+    for (let i = 0; i < horas.length; i++) {
+      const hora = horas[i];
+      for (let k = 0; k < hora.length; k++) {
+        const periodo = hora[k];
+        if(periodo.seccion) {
+          porcentaje += periodo.probabilidad
+          cantPeriodos++
+        }
+      }
+    }
+    return porcentaje / cantPeriodos
+  }
+
 }

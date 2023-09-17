@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
-import { BooksModule } from './books/books.module';
 import { AulasModule } from './aulas/aulas.module';
 import { AuthModule } from './auth/auth.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -24,8 +23,7 @@ import { HorarioModule } from './horario/horario.module';
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true,
     }), 
-    UsersModule, 
-    BooksModule,
+    UsersModule,
     AulasModule,
     AuthModule,
     MateriaCatedraticoModule,
